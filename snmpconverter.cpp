@@ -106,37 +106,38 @@ void SnmpConverter::processSciData(const QByteArray &sciData) {
             QByteArray gainOid = QByteArray::fromHex((unitPrefix + gainSuffix).toLatin1());
             QByteArray powerOid = QByteArray::fromHex((unitPrefix + powerSuffix).toLatin1());
 
-            // Mute Status (1 байт, 0 или 1)
+            // Mute Status
             int32_t mute = static_cast<int32_t>(pack.data[2]);
             buildSnmpPacket(muteOid, mute, 0x02, false);
             sendSnmpPacket();
 
-            // Summary Alarm (бит 7 из WW)
+            // Summary Alarm
             int32_t summaryAlarm = (pack.data[3] & 0x80) ? 1 : 0;
             buildSnmpPacket(summaryAlarmOid, summaryAlarm, 0x02, false);
             sendSnmpPacket();
 
-            // Temperature Alarm (бит 2 из YY)
+            // Temperature Alarm
             int32_t tempAlarm = (pack.data[4] & 0x04) ? 1 : 0;
             buildSnmpPacket(tempAlarmOid, tempAlarm, 0x02, false);
             sendSnmpPacket();
 
-            // Температура (знаковое 16-битное число, TT TT)
+            // Temperature
             int16_t tempRaw = static_cast<int16_t>((pack.data[5] << 8) | pack.data[6]);
             int32_t temp = static_cast<int32_t>(tempRaw);
             buildSnmpPacket(tempOid, temp, 0x02, true);
             sendSnmpPacket();
 
-            // Gain (беззнаковое 16-битное число, GG GG)
+            // Gain
             uint16_t gainRaw = (static_cast<uint8_t>(pack.data[7]) << 8) | static_cast<uint8_t>(pack.data[8]);
             int32_t gain = static_cast<int32_t>(gainRaw);
             buildSnmpPacket(gainOid, gain, 0x02, false);
             sendSnmpPacket();
 
-            // Output Power (беззнаковое 16-битное число, PP PP)
+            // Output Power
             uint16_t powerRaw = (static_cast<uint8_t>(pack.data[9]) << 8) | static_cast<uint8_t>(pack.data[10]);
             int32_t power = static_cast<int32_t>(powerRaw);
             buildSnmpPacket(powerOid, power, 0x02, false);
+
             sendSnmpPacket();
         } else {
             qWarning() << "Unsupported SCI command:" << pack.cmd;
@@ -181,7 +182,7 @@ void SnmpConverter::encodeInteger(QByteArray &buffer, int32_t value, bool isSign
         intBytes.append(static_cast<char>(0x00));
     } else {
         if (isSigned) {
-            // Знаковое значение
+            //Signed value
             bool isNegative = value < 0;
             uint32_t absValue = isNegative ? -value : value;
             while (absValue > 0) {
@@ -189,19 +190,19 @@ void SnmpConverter::encodeInteger(QByteArray &buffer, int32_t value, bool isSign
                 absValue >>= 8;
             }
             if (isNegative && (intBytes[0] & 0x80)) {
-                intBytes.prepend(0xFF); // Добавляем ведущий 0xFF для отрицательного числа
+                intBytes.prepend(0xFF); // Adding a leading 0xFF for a negative number
             } else if (!isNegative && (intBytes[0] & 0x80)) {
-                intBytes.prepend(static_cast<char>(0x00)); // Добавляем ведущий 0x00 для положительного числа
+                intBytes.prepend(static_cast<char>(0x00)); // Adding a leading 0x00 for a positive number
             }
         } else {
-            // Беззнаковое значение
+            // Unsigned value
             uint32_t absValue = static_cast<uint32_t>(value);
             while (absValue > 0) {
                 intBytes.prepend(static_cast<char>(absValue & 0xFF));
                 absValue >>= 8;
             }
             if (intBytes[0] & 0x80) {
-                intBytes.prepend(static_cast<char>(0x00)); // Добавляем ведущий 0x00, чтобы избежать интерпретации как отрицательного
+                intBytes.prepend(static_cast<char>(0x00)); // Add a leading 0x00 to avoid interpretation as negative
             }
         }
     }
@@ -209,7 +210,13 @@ void SnmpConverter::encodeInteger(QByteArray &buffer, int32_t value, bool isSign
     encodeLength(buffer, intBytes.size());
     buffer.append(intBytes);
 }
-
+/*
+ * Building SNMP packet
+ * QByteArray &oid - oid prefix
+ * int32_t value
+ * int valueType - if INTEGER -> encode
+ * bool isSigned - to cast in rigth type
+ */
 void SnmpConverter::buildSnmpPacket(const QByteArray &oid, int32_t value, int valueType, bool isSigned){
     snmpPacket.clear();
     snmpPacket.append(0x30); // Sequence
