@@ -3,46 +3,51 @@
 
 #include <QObject>
 #include <QSerialPort>
-#include <QSerialPortInfo>
-#include <QThread>
 
-struct portSettings{
+/*
+Contains QSerialPort settings:
+>QString name - portName: default ""; For windows "COM1", for Unix "dev/ttyUSB0"
+>BaudRate - default 9600 / specific 19200
+>DataBits - default Data8
+>Parity - default NoParity
+>StopBits - default OneStop
+>FlowControl - default NoFlowControl
+*/
+struct portSettings {
     QString name{};
-    QSerialPort::BaudRate baudRate{QSerialPort::Baud9600};
+    QSerialPort::BaudRate baudRate{QSerialPort::Baud19200};
     QSerialPort::DataBits dataBits{QSerialPort::Data8};
     QSerialPort::Parity parityMode{QSerialPort::NoParity};
     QSerialPort::StopBits stopBits{QSerialPort::OneStop};
     QSerialPort::FlowControl flowControlMode{QSerialPort::NoFlowControl};
 };
 
-class portListener : public QObject
-{
+class PortListener : public QObject {
     Q_OBJECT
 public:
-    explicit portListener(const portSettings);
-    virtual ~portListener();
-
-    QSerialPort* m_serialPort;
+    /*
+    Constructor sets port parameters at startup
+    */
+    explicit PortListener(const portSettings &config, QObject *parent = nullptr);
+    ~PortListener();
 
 private:
+    // Object that provides reading from serial port
+    QSerialPort *m_serialPort;
+    // Configurate serial port parameters
+    void writeSettingsPort(const portSettings &s);
 
 public slots:
-    void ListenPort(); // Main body
-    //void DisconnectPort();
-    void ConnectPort();//Done
-    void Write_Settings_Port(const portSettings s); //Done
-    //void WriteToPort(const QByteArray data);
-    void showPortSettings();//??? need it ???
-
-private slots:
-    //void handleError(QSerialPort::SerialPortError error);//Слот обработки ошибок
-    //void ReadInPort(); //Слот чтения из порта по ReadyRead
+    // Slot that openes port in ReadOnly Mode
+    void connectPort();
+    // Slot: Listener in a separate thread: listens to and transmits the read data for processing
+    void readSerialData();
 
 signals:
+    // Signal: transmit readed data
     void readedInfo(const QByteArray &result);
-    void statusInfo(const QString &info);
-    void finishedPort();
-    void _error(QString err);
+    // Signal for error
+    void errorOccurred(const QString &err);
 };
 
 #endif // PORTLISTENER_H
