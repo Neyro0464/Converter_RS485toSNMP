@@ -7,8 +7,8 @@ int main(int argc, char *argv[]) {
     QCoreApplication a(argc, argv);
 
     portSettings port;
-    port.name = "COM1"; // "/dev/ttyUSB0" - UNIX
-    port.baudRate = QSerialPort::Baud19200;
+    port.name = "/dev/ttyUSB0"; // "/dev/ttyUSB0" - UNIX
+    port.baudRate = QSerialPort::Baud19200; // need configurate
     port.dataBits = QSerialPort::Data8;
     port.parityMode = QSerialPort::NoParity;
     port.stopBits = QSerialPort::OneStop;
