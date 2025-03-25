@@ -6,8 +6,8 @@ In main.cpp file configurate next:
 - ip address and port of the server
 
 ## Compile:
-> $sudo apt-get update  
-$sudo apt-get install qt5-default  
+> sudo apt update
+sudo apt install build-essential qt5-default qtserialport5-dev libqt5network5
 $qmake  
 $make    
 ./RS485_2  
