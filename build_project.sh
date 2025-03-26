@@ -17,6 +17,9 @@ DEPENDENCIES=(
     "qtchooser"
 )
 
+echo "Обновление списка пакетов..."
+sudo apt-get update
+
 # Проверка и установка зависимостей
 echo "Проверка зависимостей..."
 for pkg in "${DEPENDENCIES[@]}"; do
@@ -30,7 +33,7 @@ done
 
 # Компиляция проекта
 echo "Компиляция проекта..."
-qmake "$PROJECT_NAME.pro"
+qmake "RS485_2.pro"
 make
 
 # Проверка результата компиляции
