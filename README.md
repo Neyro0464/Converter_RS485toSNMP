@@ -7,7 +7,7 @@ In main.cpp file configurate next:
 
 ## Compile:
 > sudo apt update
-sudo apt install build-essential qt5-default qtserialport5-dev libqt5network5
+sudo apt install build-essential qtbase5-dev qtserialport5-dev libqt5network5 qt5-qmake
 $qmake  
 $make    
 ./RS485_2  
