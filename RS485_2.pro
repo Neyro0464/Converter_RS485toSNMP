@@ -22,7 +22,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     portlistener.h \
     snmpconverter.h \
-    tools.h
 
 DISTFILES += \
     .gitignore
