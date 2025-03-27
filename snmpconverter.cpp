@@ -1,8 +1,8 @@
 #include "snmpconverter.h"
 #include <QDebug>
 
-SnmpConverter::SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, QObject *parent)
-    : QObject(parent), m_udpSocket(new QUdpSocket(this)), m_udpAddress(udpAddress), m_udpPort(udpPort) {
+SnmpConverter::SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, int listenAddress, QObject *parent)
+    : QObject(parent), m_udpSocket(new QUdpSocket(this)), m_udpAddress(udpAddress), m_udpPort(udpPort), m_listenAddress(listenAddress) {
     qDebug() << "SnmpConverter created for" << udpAddress.toString() << ":" << udpPort;
 }
 
@@ -58,6 +58,10 @@ void SnmpConverter::processSciData(const QByteArray &sciData) {
 
         // Extracting the source address (unit)
         uint8_t src = pack.destSrc & 0x0F;
+        if (m_listenAddress != -1 && src != m_listenAddress) {
+            return; // Skip if not listening to this address and not "all"
+        }
+
         QString unitPrefix = "2B06010401E2F704"; // Fixed OID prefix: 1.3.6.1.4.1.58039.4
         QString muteSuffix, summaryAlarmSuffix, tempAlarmSuffix, tempSuffix, gainSuffix, powerSuffix,
             statusSuffix, reflectedPowerSuffix, inputVoltageSuffix, operatingIFSuffix, outoflockAlarmSuffix,

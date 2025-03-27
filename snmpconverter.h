@@ -19,12 +19,10 @@ struct SCIPacket {
     uint8_t crc;          // CRC
 };
 
-
-
 class SnmpConverter : public QObject {
     Q_OBJECT
 public:
-    explicit SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, QObject *parent = nullptr);
+    explicit SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, int listenAddress = -1, QObject *parent = nullptr);
     ~SnmpConverter();
 
 private:
@@ -34,6 +32,7 @@ private:
     QByteArray snmpPacket;
     QString community = "public";  // SNMP community string
     uint32_t requestId = 1;        // SNMP request ID, starts at 1
+    int m_listenAddress = -1;      // -1 for all addresses, otherwise specific address
 
     // Reading SCI packet
     SCIPacket readSCI(const QByteArray &sciData);

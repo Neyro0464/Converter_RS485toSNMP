@@ -7,18 +7,14 @@ PROJECT_NAME="snmp_converter"
 OUTPUT_BINARY="RS485_2"
 
 # Список зависимостей для установки
-# Debian 12
 DEPENDENCIES=(
     "build-essential"
-    "qtbase5-dev"
-    "libqt5serialport5-dev"
+    "qt5-default"
+    "qtserialport5-dev"
     "libqt5network5"
     "qtbase5-dev"
     "qtchooser"
 )
-
-echo "Обновление списка пакетов..."
-sudo apt-get update
 
 # Проверка и установка зависимостей
 echo "Проверка зависимостей..."
@@ -33,7 +29,7 @@ done
 
 # Компиляция проекта
 echo "Компиляция проекта..."
-qmake "RS485_2.pro"
+qmake "$PROJECT_NAME.pro"
 make
 
 # Проверка результата компиляции
