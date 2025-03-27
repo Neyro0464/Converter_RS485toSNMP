@@ -27,6 +27,7 @@ void configurateSettings(portSettings &port,  QSettings &settings){
     settings.beginGroup("SerialPort");
     QStringList keys = settings.allKeys();
     qDebug() << "Keys in SerialPort:" << keys;
+    settings.endGroup();
 }
 
 int main(int argc, char *argv[]) {
@@ -42,15 +43,22 @@ int main(int argc, char *argv[]) {
     PortListener *m_port = new PortListener(port);
     QHostAddress snmpIp = QHostAddress(settings.value("SNMP/ipAddress", "127.0.0.1").toString());
     quint16 snmpPort = settings.value("SNMP/port", 161).toUInt();
+
+    // Читаем listenAddress
     QString listenAddressStr = settings.value("RS485/listenAddress", "all").toString();
+    qDebug() << "Raw listenAddress from config:" << listenAddressStr;
     int listenAddress = -1;
     if (listenAddressStr != "all") {
         bool ok;
-        listenAddress = listenAddressStr.toUInt(&ok, 16); // Assuming hex, e.g., "0xA"
+        QString cleanedAddress = listenAddressStr.startsWith("0x") ? listenAddressStr.mid(2) : listenAddressStr;
+        qDebug() << "Cleaned address:" << cleanedAddress;
+        listenAddress = cleanedAddress.toUInt(&ok, 16);
         if (!ok) {
-            qWarning() << "Invalid RS485 listen address, using 'all'";
+            qWarning() << "Invalid RS485 listen address:" << listenAddressStr << ", using 'all'";
+            listenAddress = -1;
         }
     }
+    qDebug() << "Listen address set to:" << listenAddress;
 
     SnmpConverter *m_snmp = new SnmpConverter(snmpIp, snmpPort, listenAddress);
 

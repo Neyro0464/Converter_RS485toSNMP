@@ -58,7 +58,9 @@ void SnmpConverter::processSciData(const QByteArray &sciData) {
 
         // Extracting the source address (unit)
         uint8_t src = pack.destSrc & 0x0F;
+        // Check if we should process this address
         if (m_listenAddress != -1 && src != m_listenAddress) {
+            qDebug() << "Ignoring packet from Src:" << src << ", listening to:" << m_listenAddress;
             return; // Skip if not listening to this address and not "all"
         }
 
