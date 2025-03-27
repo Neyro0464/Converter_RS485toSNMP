@@ -22,12 +22,6 @@ void configurateSettings(portSettings &port,  QSettings &settings){
     if (flowControlStr == "None") port.flowControlMode = QSerialPort::NoFlowControl;
     else if (flowControlStr == "Hardware") port.flowControlMode = QSerialPort::HardwareControl;
     else if (flowControlStr == "Software") port.flowControlMode = QSerialPort::SoftwareControl;
-
-
-    settings.beginGroup("SerialPort");
-    QStringList keys = settings.allKeys();
-    qDebug() << "Keys in SerialPort:" << keys;
-    settings.endGroup();
 }
 
 int main(int argc, char *argv[]) {
@@ -46,7 +40,6 @@ int main(int argc, char *argv[]) {
 
     // Читаем listenAddress
     QString listenAddressStr = settings.value("RS485/listenAddress", "all").toString();
-    qDebug() << "Raw listenAddress from config:" << listenAddressStr;
     int listenAddress = -1;
     if (listenAddressStr != "all") {
         bool ok;
