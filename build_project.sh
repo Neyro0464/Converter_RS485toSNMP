@@ -9,8 +9,8 @@ OUTPUT_BINARY="RS485_2"
 # Список зависимостей для установки
 DEPENDENCIES=(
     "build-essential"
-    "qt5-default"
-    "qtserialport5-dev"
+    "qtbase5-dev-tools"
+    "libqt5serialport5-dev"
     "libqt5network5"
     "qtbase5-dev"
     "qtchooser"
@@ -29,7 +29,7 @@ done
 
 # Компиляция проекта
 echo "Компиляция проекта..."
-qmake "$PROJECT_NAME.pro"
+qmake "RS485_2.pro"
 make
 
 # Проверка результата компиляции
