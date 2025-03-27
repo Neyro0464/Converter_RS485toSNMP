@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QUdpSocket>
 #include <QHostAddress>
+#include <QNetworkInterface>
 #include <vector>
 
 // Константы для SCI-пакетов
@@ -22,17 +23,22 @@ struct SCIPacket {
 class SnmpConverter : public QObject {
     Q_OBJECT
 public:
-    explicit SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, int listenAddress = -1, QObject *parent = nullptr);
+    explicit SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, const QHostAddress &subnetMask, const QHostAddress &gateway, int listenAddress = -1, QObject *parent = nullptr);
     ~SnmpConverter();
 
 private:
     QUdpSocket *m_udpSocket;
     QHostAddress m_udpAddress;
     quint16 m_udpPort;
+    QHostAddress m_subnetMask; // Маска подсети
+    QHostAddress m_gateway;    // Шлюз по умолчанию
     QByteArray snmpPacket;
     QString community = "public";  // SNMP community string
     uint32_t requestId = 1;        // SNMP request ID, starts at 1
     int m_listenAddress = -1;      // -1 for all addresses, otherwise specific address
+
+    // Проверка, находится ли адрес в той же подсети
+    bool isInSameSubnet(const QHostAddress &address) const;
 
     // Reading SCI packet
     SCIPacket readSCI(const QByteArray &sciData);

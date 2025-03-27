@@ -1,15 +1,87 @@
 #include "snmpconverter.h"
 #include <QDebug>
 
-SnmpConverter::SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, int listenAddress, QObject *parent)
-    : QObject(parent), m_udpSocket(new QUdpSocket(this)), m_udpAddress(udpAddress), m_udpPort(udpPort), m_listenAddress(listenAddress) {
-    qDebug() << "SnmpConverter created for" << udpAddress.toString() << ":" << udpPort;
+SnmpConverter::SnmpConverter(const QHostAddress &udpAddress, quint16 udpPort, const QHostAddress &subnetMask, const QHostAddress &gateway, int listenAddress, QObject *parent)
+    : QObject(parent), m_udpSocket(new QUdpSocket(this)), m_udpAddress(udpAddress), m_udpPort(udpPort), m_subnetMask(subnetMask), m_gateway(gateway), m_listenAddress(listenAddress) {
+    qDebug() << "SnmpConverter created for" << udpAddress.toString() << ":" << udpPort
+             << "with subnet mask" << subnetMask.toString() << "and gateway" << gateway.toString();
 }
 
 SnmpConverter::~SnmpConverter() {
     qDebug() << "SnmpConverter destroyed";
 }
 
+// Проверка, находится ли адрес в той же подсети
+bool SnmpConverter::isInSameSubnet(const QHostAddress &address) const {
+    // Проверяем, является ли адрес loopback (127.0.0.0/8)
+    if (address.isLoopback()) {
+        return true; // Loopback-адреса всегда считаются "в той же подсети"
+    }
+
+    if (address.protocol() != m_subnetMask.protocol()) {
+        return false; // Протоколы должны совпадать (IPv4 или IPv6)
+    }
+
+    // Получаем локальный адрес (пример для первого интерфейса)
+    QHostAddress localAddress;
+    foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces()) {
+        foreach (const QNetworkAddressEntry &entry, interface.addressEntries()) {
+            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                localAddress = entry.ip();
+                break;
+            }
+        }
+        if (!localAddress.isNull()) break;
+    }
+
+    if (localAddress.isNull()) {
+        qWarning() << "Could not determine local IP address";
+        return false;
+    }
+
+    if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+        quint32 ip = address.toIPv4Address();
+        quint32 localIp = localAddress.toIPv4Address();
+        quint32 mask = m_subnetMask.toIPv4Address();
+        return (ip & mask) == (localIp & mask);
+    }
+
+    // Для IPv6 (если нужно)
+    return false;
+}
+
+void SnmpConverter::sendSnmpPacket() {
+    QHostAddress targetAddress = m_udpAddress;
+
+    // Проверяем, является ли адрес loopback
+    if (m_udpAddress.isLoopback()) {
+        qDebug() << "Sending to loopback address" << m_udpAddress.toString() << ", no subnet check or gateway routing needed";
+    } else {
+        // Проверяем, находится ли целевой адрес в той же подсети
+        if (!isInSameSubnet(m_udpAddress)) {
+            if (m_gateway.isNull() || m_gateway == QHostAddress("0.0.0.0")) {
+                qWarning() << "Target address" << m_udpAddress.toString() << "is not in the same subnet as configured with mask"
+                           << m_subnetMask.toString() << "and no gateway is specified";
+                emit errorOccurred("Target address is not in the same subnet and no gateway is specified");
+                return;
+            }
+
+            // Если адрес не в той же подсети, отправляем через шлюз
+            qDebug() << "Target address" << m_udpAddress.toString() << "is not in the same subnet, routing through gateway" << m_gateway.toString();
+            targetAddress = m_gateway;
+        }
+    }
+
+    qint64 bytesWritten = m_udpSocket->writeDatagram(snmpPacket, targetAddress, m_udpPort);
+    if (bytesWritten == -1) {
+        QString err = "UDP send failed: " + m_udpSocket->errorString();
+        qWarning() << err;
+        emit errorOccurred(err);
+    } else {
+        qDebug() << "SNMP packet sent to" << targetAddress.toString() << ":" << m_udpPort << ":" << snmpPacket.toHex(' ');
+        emit snmpPacketSent(snmpPacket);
+    }
+}
 uint8_t SnmpConverter::calculateCRC(const QByteArray &data) {
     uint8_t crc = 0;
     for (int i = 1; i < data.size() - 2; ++i) { // Skip STX and ETX
@@ -844,16 +916,4 @@ void SnmpConverter::buildSnmpPacket(const QByteArray &oid, int32_t value, int va
 
     int totalLen = snmpPacket.size() - totalLenPos - 1;
     snmpPacket[totalLenPos] = static_cast<char>(totalLen);
-}
-
-void SnmpConverter::sendSnmpPacket() {
-    qint64 bytesWritten = m_udpSocket->writeDatagram(snmpPacket, m_udpAddress, m_udpPort);
-    if (bytesWritten == -1) {
-        QString err = "UDP send failed: " + m_udpSocket->errorString();
-        qWarning() << err;
-        emit errorOccurred(err);
-    } else {
-        qDebug() << "SNMP packet sent:" << snmpPacket.toHex(' ');
-        emit snmpPacketSent(snmpPacket);
-    }
 }
